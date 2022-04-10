@@ -1,0 +1,48 @@
+# https://www.jenkins.io/doc/tutorials/create-a-pipeline-in-blue-ocean/
+
+version: '3.3'
+services:
+  jenkins:
+    image: jenkinsci/blueocean
+    container_name: jenkins-blueocean
+    restart: always
+    depends_on:
+      - dind
+    environment:
+      DOCKER_HOST: tcp://docker:2376
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: 1
+    networks:
+      jenkins:
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+      #- ~/:/home
+    ports:
+      - "8080:8080"
+
+  dind:
+    image: docker:dind
+    container_name: jenkins-docker-dind
+    restart: always
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    networks:
+      jenkins:
+        aliases:
+          - docker
+    volumes:
+      - jenkins-docker-certs:/certs/client
+      - jenkins-data:/var/jenkins_home
+      #- ~/:/home
+    privileged: true
+    #By default, when using docker:dind, Docker uses the vfs storage driver which copies the file system on every run.
+    #This is a disk-intensive operation which can be avoided if a different driver is used, for example overlay2.
+    command: --storage-driver=overlay2
+
+networks:
+  jenkins:
+
+volumes:
+  jenkins-docker-certs:
+  jenkins-data:
